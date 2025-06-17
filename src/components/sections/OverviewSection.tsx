@@ -15,20 +15,43 @@ import {
   AlertTriangle,
   XCircle
 } from "lucide-react";
+import { useMicroservices } from "@/hooks/useMicroservices";
+import { useSystemLogs } from "@/hooks/useSystemLogs";
+import { useMessaging } from "@/hooks/useMessaging";
 
 export function OverviewSection() {
+  const { microservices, isLoading: servicesLoading } = useMicroservices();
+  const { logs } = useSystemLogs(5);
+  const { kafkaTopics, rabbitQueues } = useMessaging();
+
+  if (servicesLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Activity className="w-8 h-8 animate-spin mx-auto mb-2" />
+          <p>Carregando dados dos microserviços...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const onlineServices = microservices.filter(s => s.status === 'online').length;
+  const totalRequests = microservices.reduce((acc, s) => acc + s.requests_per_minute, 0);
+  const avgCpu = microservices.reduce((acc, s) => acc + s.cpu_usage, 0) / microservices.length;
+  const avgResponseTime = microservices.reduce((acc, s) => acc + (s.requests_per_minute > 0 ? 100 : 50), 0) / microservices.length;
+
   const stats = [
     {
       title: "Microserviços Ativos",
-      value: "12",
-      change: "+2",
+      value: `${onlineServices}`,
+      change: `+${onlineServices - 10}`,
       icon: Server,
       color: "text-spring-green",
       bgColor: "bg-green-50"
     },
     {
       title: "Requisições/min",
-      value: "2.4k",
+      value: `${(totalRequests / 1000).toFixed(1)}k`,
       change: "+12%",
       icon: TrendingUp,
       color: "text-blue-600",
@@ -44,21 +67,12 @@ export function OverviewSection() {
     },
     {
       title: "Tempo Resposta",
-      value: "124ms",
+      value: `${Math.round(avgResponseTime)}ms`,
       change: "-8ms",
       icon: Clock,
       color: "text-orange-600",
       bgColor: "bg-orange-50"
     }
-  ];
-
-  const services = [
-    { name: "user-service", status: "online", version: "v2.1.3", cpu: 45, memory: 67 },
-    { name: "order-service", status: "online", version: "v1.8.2", cpu: 23, memory: 54 },
-    { name: "payment-service", status: "online", version: "v3.0.1", cpu: 67, memory: 78 },
-    { name: "notification-service", status: "warning", version: "v1.5.4", cpu: 89, memory: 92 },
-    { name: "inventory-service", status: "online", version: "v2.3.0", cpu: 34, memory: 45 },
-    { name: "auth-service", status: "online", version: "v4.1.2", cpu: 12, memory: 28 }
   ];
 
   const getStatusIcon = (status: string) => {
@@ -121,7 +135,7 @@ export function OverviewSection() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {services.map((service, index) => (
+              {microservices.map((service, index) => (
                 <div key={index} className="flex items-center justify-between p-3 border rounded-lg hover:bg-slate-50 transition-colors">
                   <div className="flex items-center gap-3">
                     {getStatusIcon(service.status)}
@@ -146,15 +160,15 @@ export function OverviewSection() {
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              {services.slice(0, 4).map((service, index) => (
+              {microservices.slice(0, 4).map((service, index) => (
                 <div key={index} className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="font-medium">{service.name}</span>
-                    <span className="text-slate-600">CPU: {service.cpu}% | RAM: {service.memory}%</span>
+                    <span className="text-slate-600">CPU: {service.cpu_usage}% | RAM: {service.memory_usage}%</span>
                   </div>
                   <div className="space-y-1">
-                    <Progress value={service.cpu} className="h-2" />
-                    <Progress value={service.memory} className="h-2" />
+                    <Progress value={service.cpu_usage} className="h-2" />
+                    <Progress value={service.memory_usage} className="h-2" />
                   </div>
                 </div>
               ))}
@@ -208,8 +222,8 @@ export function OverviewSection() {
                 <Badge className="bg-green-100 text-green-800">Online</Badge>
               </div>
               <div className="text-sm text-slate-600">
-                <p>Mensagens/seg: 1.2k</p>
-                <p>Filas ativas: 8</p>
+                <p>Tópicos Kafka: {kafkaTopics.length}</p>
+                <p>Filas RabbitMQ: {rabbitQueues.length}</p>
               </div>
             </div>
           </CardContent>
@@ -240,6 +254,36 @@ export function OverviewSection() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Recent Logs Preview */}
+      {logs.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="w-5 h-5" />
+              Logs Recentes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {logs.map((log, index) => (
+                <div key={index} className="flex items-center gap-3 p-2 border rounded text-sm">
+                  <Badge className={
+                    log.level === 'ERROR' ? 'bg-red-100 text-red-800' :
+                    log.level === 'WARN' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-blue-100 text-blue-800'
+                  }>
+                    {log.level}
+                  </Badge>
+                  <span className="font-medium">{log.service_name}</span>
+                  <span className="flex-1">{log.message}</span>
+                  <span className="text-slate-500">{new Date(log.timestamp).toLocaleTimeString()}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

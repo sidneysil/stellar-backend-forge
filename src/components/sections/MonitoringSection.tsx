@@ -13,20 +13,22 @@ import {
   HardDrive,
   Zap
 } from "lucide-react";
+import { useMicroservices } from "@/hooks/useMicroservices";
+import { useSystemLogs } from "@/hooks/useSystemLogs";
 
 export function MonitoringSection() {
+  const { microservices } = useMicroservices();
+  const { logs } = useSystemLogs(15);
+
+  const avgCpu = microservices.reduce((acc, s) => acc + s.cpu_usage, 0) / microservices.length || 0;
+  const avgMemory = microservices.reduce((acc, s) => acc + s.memory_usage, 0) / microservices.length || 0;
+  const avgResponseTime = 124; // Simulated
+  const systemHealth = microservices.filter(s => s.status === 'online').length / microservices.length * 100;
+
   const alerts = [
     { severity: "warning", service: "notification-service", message: "High memory usage (92%)", time: "2m ago" },
     { severity: "info", service: "payment-service", message: "Deployment completed successfully", time: "15m ago" },
     { severity: "warning", service: "order-service", message: "Consumer lag detected", time: "1h ago" }
-  ];
-
-  const logs = [
-    { level: "ERROR", service: "user-service", message: "Failed to connect to Redis", timestamp: "2023-12-15 14:32:15" },
-    { level: "WARN", service: "order-service", message: "Slow query detected: 2.3s", timestamp: "2023-12-15 14:31:45" },
-    { level: "INFO", service: "payment-service", message: "Payment processed successfully", timestamp: "2023-12-15 14:31:30" },
-    { level: "ERROR", service: "notification-service", message: "SMTP server timeout", timestamp: "2023-12-15 14:30:58" },
-    { level: "INFO", service: "auth-service", message: "User authenticated", timestamp: "2023-12-15 14:30:45" }
   ];
 
   const getAlertIcon = (severity: string) => {
@@ -59,7 +61,7 @@ export function MonitoringSection() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-600">System Health</p>
-                <p className="text-2xl font-bold text-green-600">98.5%</p>
+                <p className="text-2xl font-bold text-green-600">{systemHealth.toFixed(1)}%</p>
                 <p className="text-sm text-green-600">Excellent</p>
               </div>
               <Activity className="w-8 h-8 text-green-600" />
@@ -72,7 +74,7 @@ export function MonitoringSection() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-600">Avg CPU</p>
-                <p className="text-2xl font-bold text-slate-900">34%</p>
+                <p className="text-2xl font-bold text-slate-900">{avgCpu.toFixed(0)}%</p>
                 <p className="text-sm text-green-600">Normal</p>
               </div>
               <Cpu className="w-8 h-8 text-blue-600" />
@@ -85,7 +87,7 @@ export function MonitoringSection() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-600">Avg Memory</p>
-                <p className="text-2xl font-bold text-slate-900">62%</p>
+                <p className="text-2xl font-bold text-slate-900">{avgMemory.toFixed(0)}%</p>
                 <p className="text-sm text-yellow-600">Moderate</p>
               </div>
               <HardDrive className="w-8 h-8 text-purple-600" />
@@ -98,7 +100,7 @@ export function MonitoringSection() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-600">Response Time</p>
-                <p className="text-2xl font-bold text-slate-900">124ms</p>
+                <p className="text-2xl font-bold text-slate-900">{avgResponseTime}ms</p>
                 <p className="text-sm text-green-600">Fast</p>
               </div>
               <Zap className="w-8 h-8 text-yellow-600" />
@@ -157,8 +159,8 @@ export function MonitoringSection() {
             {logs.map((log, index) => (
               <div key={index} className="flex items-center gap-3 p-3 border rounded-lg hover:bg-slate-50 transition-colors font-mono text-sm">
                 {getLogLevelBadge(log.level)}
-                <span className="text-slate-600">{log.timestamp}</span>
-                <span className="font-medium">{log.service}</span>
+                <span className="text-slate-600">{new Date(log.timestamp).toLocaleString()}</span>
+                <span className="font-medium">{log.service_name}</span>
                 <span className="flex-1 text-slate-800">{log.message}</span>
               </div>
             ))}
@@ -215,6 +217,36 @@ export function MonitoringSection() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Service Health Detail */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="w-5 h-5" />
+            Health Check dos Serviços
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {microservices.map((service) => (
+              <div key={service.id} className="p-4 border rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium">{service.name}</span>
+                  <Badge className={service.status === 'online' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
+                    {service.status === 'online' ? 'Online' : 'Atenção'}
+                  </Badge>
+                </div>
+                <div className="space-y-1 text-sm text-slate-600">
+                  <div>CPU: {service.cpu_usage}%</div>
+                  <div>Memory: {service.memory_usage}%</div>
+                  <div>Requests: {service.requests_per_minute}/min</div>
+                  <div>Error Rate: {service.error_rate}%</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

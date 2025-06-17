@@ -6,115 +6,43 @@ import { Progress } from "@/components/ui/progress";
 import { 
   Server, 
   Play, 
-  Square, 
+  Pause, 
   RotateCcw, 
-  Settings, 
-  Activity,
+  Settings,
   CheckCircle,
   AlertTriangle,
   XCircle,
-  Coffee,
-  Layers
+  Activity,
+  Clock,
+  Cpu,
+  HardDrive
 } from "lucide-react";
+import { useMicroservices } from "@/hooks/useMicroservices";
 
 export function ServicesSection() {
-  const services = [
-    {
-      name: "user-service",
-      description: "Gerenciamento de usuários e perfis",
-      status: "online",
-      version: "v2.1.3",
-      port: 8081,
-      instances: 3,
-      cpu: 45,
-      memory: 67,
-      uptime: "15d 4h 23m",
-      requests: "1.2k/min",
-      errors: "0.1%",
-      lastDeploy: "2023-12-10 14:30"
-    },
-    {
-      name: "order-service",
-      description: "Processamento de pedidos",
-      status: "online",
-      version: "v1.8.2",
-      port: 8082,
-      instances: 2,
-      cpu: 23,
-      memory: 54,
-      uptime: "12d 8h 15m",
-      requests: "890/min",
-      errors: "0.05%",
-      lastDeploy: "2023-12-08 09:15"
-    },
-    {
-      name: "payment-service",
-      description: "Processamento de pagamentos",
-      status: "online",
-      version: "v3.0.1",
-      port: 8083,
-      instances: 4,
-      cpu: 67,
-      memory: 78,
-      uptime: "8d 2h 45m",
-      requests: "456/min",
-      errors: "0.2%",
-      lastDeploy: "2023-12-12 16:45"
-    },
-    {
-      name: "notification-service",
-      description: "Serviço de notificações",
-      status: "warning",
-      version: "v1.5.4",
-      port: 8084,
-      instances: 2,
-      cpu: 89,
-      memory: 92,
-      uptime: "3d 14h 22m",
-      requests: "234/min",
-      errors: "2.1%",
-      lastDeploy: "2023-12-09 11:20"
-    },
-    {
-      name: "inventory-service",
-      description: "Controle de estoque",
-      status: "online",
-      version: "v2.3.0",
-      port: 8085,
-      instances: 2,
-      cpu: 34,
-      memory: 45,
-      uptime: "20d 6h 18m",
-      requests: "678/min",
-      errors: "0.3%",
-      lastDeploy: "2023-12-05 13:10"
-    },
-    {
-      name: "auth-service",
-      description: "Autenticação e autorização",
-      status: "online",
-      version: "v4.1.2",
-      port: 8086,
-      instances: 3,
-      cpu: 12,
-      memory: 28,
-      uptime: "25d 1h 5m",
-      requests: "2.1k/min",
-      errors: "0.01%",
-      lastDeploy: "2023-12-01 10:30"
-    }
-  ];
+  const { microservices, isLoading } = useMicroservices();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Activity className="w-8 h-8 animate-spin mx-auto mb-2" />
+          <p>Carregando microserviços...</p>
+        </div>
+      </div>
+    );
+  }
 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'online':
-        return <CheckCircle className="w-5 h-5 text-status-online" />;
+        return <CheckCircle className="w-5 h-5 text-green-600" />;
       case 'warning':
-        return <AlertTriangle className="w-5 h-5 text-status-warning" />;
+        return <AlertTriangle className="w-5 h-5 text-yellow-600" />;
       case 'offline':
-        return <XCircle className="w-5 h-5 text-status-offline" />;
+        return <XCircle className="w-5 h-5 text-red-600" />;
       default:
-        return <CheckCircle className="w-5 h-5 text-status-online" />;
+        return <CheckCircle className="w-5 h-5 text-green-600" />;
     }
   };
 
@@ -132,36 +60,80 @@ export function ServicesSection() {
     );
   };
 
+  const formatUptime = (hours: number) => {
+    const days = Math.floor(hours / 24);
+    const remainingHours = hours % 24;
+    return `${days}d ${remainingHours}h`;
+  };
+
   return (
     <div className="space-y-6">
-      {/* Header Actions */}
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Coffee className="w-6 h-6 text-java-orange" />
-            <span className="font-medium text-slate-700">Spring Boot Services</span>
-          </div>
-          <Badge variant="outline" className="text-spring-green border-spring-green">
-            Java 11 + Spring Boot 2.7.x
-          </Badge>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <RotateCcw className="w-4 h-4 mr-2" />
-            Refresh All
-          </Button>
-          <Button size="sm" className="gradient-spring text-white">
-            <Play className="w-4 h-4 mr-2" />
-            Deploy New
-          </Button>
-        </div>
+      {/* Services Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-600">Total Services</p>
+                <p className="text-2xl font-bold text-slate-900">{microservices.length}</p>
+                <p className="text-sm text-green-600">All monitored</p>
+              </div>
+              <Server className="w-8 h-8 text-blue-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-600">Online</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {microservices.filter(s => s.status === 'online').length}
+                </p>
+                <p className="text-sm text-green-600">Healthy</p>
+              </div>
+              <CheckCircle className="w-8 h-8 text-green-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-600">Warning</p>
+                <p className="text-2xl font-bold text-yellow-600">
+                  {microservices.filter(s => s.status === 'warning').length}
+                </p>
+                <p className="text-sm text-yellow-600">Attention</p>
+              </div>
+              <AlertTriangle className="w-8 h-8 text-yellow-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-600">Total Instances</p>
+                <p className="text-2xl font-bold text-slate-900">
+                  {microservices.reduce((acc, s) => acc + s.instances, 0)}
+                </p>
+                <p className="text-sm text-blue-600">Running</p>
+              </div>
+              <Activity className="w-8 h-8 text-purple-600" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Services Grid */}
+      {/* Detailed Services List */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {services.map((service, index) => (
-          <Card key={index} className="hover:shadow-lg transition-all duration-200">
-            <CardHeader className="pb-3">
+        {microservices.map((service) => (
+          <Card key={service.id} className="hover:shadow-lg transition-shadow">
+            <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   {getStatusIcon(service.status)}
@@ -190,98 +162,70 @@ export function ServicesSection() {
                 </div>
                 <div>
                   <span className="text-slate-600">Uptime:</span>
-                  <span className="ml-2 font-medium">{service.uptime}</span>
+                  <span className="ml-2 font-medium">{formatUptime(service.uptime_hours)}</span>
                 </div>
               </div>
 
-              {/* Metrics */}
+              {/* Resource Usage */}
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span>CPU Usage</span>
-                  <span className="font-medium">{service.cpu}%</span>
+                  <div className="flex items-center gap-2">
+                    <Cpu className="w-4 h-4" />
+                    <span>CPU Usage</span>
+                  </div>
+                  <span className="font-medium">{service.cpu_usage}%</span>
                 </div>
-                <Progress value={service.cpu} className="h-2" />
+                <Progress value={service.cpu_usage} className="h-2" />
                 
                 <div className="flex justify-between text-sm">
-                  <span>Memory Usage</span>
-                  <span className="font-medium">{service.memory}%</span>
+                  <div className="flex items-center gap-2">
+                    <HardDrive className="w-4 h-4" />
+                    <span>Memory Usage</span>
+                  </div>
+                  <span className="font-medium">{service.memory_usage}%</span>
                 </div>
-                <Progress value={service.memory} className="h-2" />
+                <Progress value={service.memory_usage} className="h-2" />
               </div>
 
               {/* Performance Metrics */}
               <div className="grid grid-cols-2 gap-4 p-3 bg-slate-50 rounded-lg text-sm">
                 <div>
-                  <div className="text-slate-600">Requisições</div>
-                  <div className="font-medium">{service.requests}</div>
+                  <div className="text-slate-600">Requests/min</div>
+                  <div className="font-medium">{service.requests_per_minute.toLocaleString()}</div>
                 </div>
                 <div>
-                  <div className="text-slate-600">Taxa de Erro</div>
-                  <div className="font-medium">{service.errors}</div>
+                  <div className="text-slate-600">Error Rate</div>
+                  <div className={`font-medium ${service.error_rate > 1 ? 'text-red-600' : 'text-green-600'}`}>
+                    {service.error_rate}%
+                  </div>
                 </div>
               </div>
 
-              {/* Actions */}
+              {/* Action Buttons */}
               <div className="flex gap-2 pt-2">
-                <Button variant="outline" size="sm" className="flex-1">
-                  <Activity className="w-4 h-4 mr-2" />
-                  Logs
+                <Button size="sm" variant="outline" className="flex-1">
+                  <Play className="w-4 h-4 mr-2" />
+                  Restart
                 </Button>
-                <Button variant="outline" size="sm" className="flex-1">
+                <Button size="sm" variant="outline" className="flex-1">
+                  <Pause className="w-4 h-4 mr-2" />
+                  Stop
+                </Button>
+                <Button size="sm" variant="outline" className="flex-1">
                   <Settings className="w-4 h-4 mr-2" />
                   Config
                 </Button>
-                <Button variant="outline" size="sm">
-                  <Square className="w-4 h-4" />
-                </Button>
-                <Button variant="outline" size="sm">
-                  <RotateCcw className="w-4 h-4" />
-                </Button>
               </div>
 
-              {/* Last Deploy */}
-              <div className="text-xs text-slate-500 pt-2 border-t">
-                Último deploy: {service.lastDeploy}
+              {/* Last Deploy Info */}
+              <div className="text-xs text-slate-500 flex items-center gap-2">
+                <Clock className="w-3 h-3" />
+                <span>Último deploy: {new Date(service.last_deploy).toLocaleString()}</span>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
-
-      {/* Service Architecture */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Layers className="w-5 h-5" />
-            Arquitetura dos Microserviços
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-3 gradient-java rounded-lg flex items-center justify-center">
-                <Server className="w-8 h-8 text-white" />
-              </div>
-              <h4 className="font-medium mb-2">API Gateway</h4>
-              <p className="text-sm text-slate-600">Roteamento e balanceamento de carga</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-3 gradient-spring rounded-lg flex items-center justify-center">
-                <Coffee className="w-8 h-8 text-white" />
-              </div>
-              <h4 className="font-medium mb-2">Microserviços</h4>
-              <p className="text-sm text-slate-600">Serviços independentes e escaláveis</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-3 gradient-dashboard rounded-lg flex items-center justify-center">
-                <Activity className="w-8 h-8 text-white" />
-              </div>
-              <h4 className="font-medium mb-2">Service Discovery</h4>
-              <p className="text-sm text-slate-600">Registro e descoberta automática</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

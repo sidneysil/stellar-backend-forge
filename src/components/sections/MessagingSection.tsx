@@ -1,66 +1,52 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { 
   MessageSquare, 
-  Rabbit, 
-  Zap, 
-  TrendingUp,
-  Users,
-  Clock,
+  BarChart3, 
+  TrendingUp, 
+  Activity,
   AlertTriangle,
-  Play,
-  Pause,
-  Settings
+  CheckCircle,
+  Clock,
+  Users,
+  Zap
 } from "lucide-react";
+import { useMessaging } from "@/hooks/useMessaging";
 
 export function MessagingSection() {
-  const kafkaTopics = [
-    { name: "user-events", partitions: 3, replicas: 2, messages: 15420, rate: "1.2k/min", lag: 0 },
-    { name: "order-events", partitions: 5, replicas: 3, messages: 8934, rate: "890/min", lag: 12 },
-    { name: "payment-events", partitions: 2, replicas: 2, messages: 4567, rate: "456/min", lag: 0 },
-    { name: "notification-events", partitions: 1, replicas: 2, messages: 2345, rate: "234/min", lag: 5 },
-    { name: "audit-events", partitions: 1, replicas: 1, messages: 9876, rate: "98/min", lag: 0 }
-  ];
+  const { kafkaTopics, rabbitQueues, isLoading } = useMessaging();
 
-  const rabbitQueues = [
-    { name: "email-queue", messages: 234, consumers: 3, rate: "45/min", status: "active" },
-    { name: "sms-queue", messages: 89, consumers: 2, rate: "12/min", status: "active" },
-    { name: "push-notification-queue", messages: 567, consumers: 4, rate: "78/min", status: "active" },
-    { name: "audit-queue", messages: 12, consumers: 1, rate: "5/min", status: "active" },
-    { name: "dead-letter-queue", messages: 3, consumers: 1, rate: "0/min", status: "warning" }
-  ];
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Activity className="w-8 h-8 animate-spin mx-auto mb-2" />
+          <p>Carregando dados de mensageria...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const consumers = [
-    { service: "user-service", group: "user-consumer-group", topic: "user-events", lag: 0, status: "healthy" },
-    { service: "order-service", group: "order-consumer-group", topic: "order-events", lag: 12, status: "warning" },
-    { service: "payment-service", group: "payment-consumer-group", topic: "payment-events", lag: 0, status: "healthy" },
-    { service: "notification-service", group: "notification-consumer-group", topic: "notification-events", lag: 5, status: "healthy" },
-    { service: "audit-service", group: "audit-consumer-group", topic: "audit-events", lag: 0, status: "healthy" }
-  ];
+  const totalKafkaMessages = kafkaTopics.reduce((acc, topic) => acc + topic.messages_count, 0);
+  const totalRabbitMessages = rabbitQueues.reduce((acc, queue) => acc + queue.messages, 0);
+  const avgKafkaRate = kafkaTopics.reduce((acc, topic) => acc + topic.rate_per_minute, 0) / kafkaTopics.length || 0;
+  const avgRabbitRate = rabbitQueues.reduce((acc, queue) => acc + queue.rate_per_minute, 0) / rabbitQueues.length || 0;
 
-  const getStatusBadge = (status: string) => {
+  const getQueueStatusBadge = (status: string) => {
     const variants = {
       active: "bg-green-100 text-green-800",
-      healthy: "bg-green-100 text-green-800",
       warning: "bg-yellow-100 text-yellow-800",
-      error: "bg-red-100 text-red-800"
+      inactive: "bg-red-100 text-red-800"
     };
     
     return (
       <Badge className={variants[status as keyof typeof variants] || variants.active}>
-        {status === 'active' || status === 'healthy' ? 'Ativo' : 
-         status === 'warning' ? 'Atenção' : 'Erro'}
+        {status === 'active' ? 'Ativo' : status === 'warning' ? 'Atenção' : 'Inativo'}
       </Badge>
     );
-  };
-
-  const getLagColor = (lag: number) => {
-    if (lag === 0) return "text-green-600";
-    if (lag < 10) return "text-yellow-600";
-    return "text-red-600";
   };
 
   return (
@@ -71,9 +57,9 @@ export function MessagingSection() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600">Total Messages</p>
-                <p className="text-2xl font-bold text-slate-900">45.2k</p>
-                <p className="text-sm text-green-600">+12% hoje</p>
+                <p className="text-sm font-medium text-slate-600">Tópicos Kafka</p>
+                <p className="text-2xl font-bold text-slate-900">{kafkaTopics.length}</p>
+                <p className="text-sm text-blue-600">Topics ativos</p>
               </div>
               <MessageSquare className="w-8 h-8 text-blue-600" />
             </div>
@@ -84,11 +70,11 @@ export function MessagingSection() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600">Messages/min</p>
-                <p className="text-2xl font-bold text-slate-900">2.8k</p>
-                <p className="text-sm text-green-600">+5% vs ontem</p>
+                <p className="text-sm font-medium text-slate-600">Filas RabbitMQ</p>
+                <p className="text-2xl font-bold text-slate-900">{rabbitQueues.length}</p>
+                <p className="text-sm text-green-600">Queues ativas</p>
               </div>
-              <TrendingUp className="w-8 h-8 text-green-600" />
+              <Zap className="w-8 h-8 text-green-600" />
             </div>
           </CardContent>
         </Card>
@@ -97,11 +83,13 @@ export function MessagingSection() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600">Active Consumers</p>
-                <p className="text-2xl font-bold text-slate-900">15</p>
-                <p className="text-sm text-blue-600">Todos online</p>
+                <p className="text-sm font-medium text-slate-600">Total Mensagens</p>
+                <p className="text-2xl font-bold text-slate-900">
+                  {(totalKafkaMessages + totalRabbitMessages).toLocaleString()}
+                </p>
+                <p className="text-sm text-purple-600">Processadas</p>
               </div>
-              <Users className="w-8 h-8 text-purple-600" />
+              <BarChart3 className="w-8 h-8 text-purple-600" />
             </div>
           </CardContent>
         </Card>
@@ -110,66 +98,68 @@ export function MessagingSection() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600">Avg Latency</p>
-                <p className="text-2xl font-bold text-slate-900">45ms</p>
-                <p className="text-sm text-green-600">-8ms</p>
+                <p className="text-sm font-medium text-slate-600">Taxa Média</p>
+                <p className="text-2xl font-bold text-slate-900">
+                  {Math.round(avgKafkaRate + avgRabbitRate)}/min
+                </p>
+                <p className="text-sm text-orange-600">Throughput</p>
               </div>
-              <Clock className="w-8 h-8 text-orange-600" />
+              <TrendingUp className="w-8 h-8 text-orange-600" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Apache Kafka Topics */}
+      {/* Kafka Topics */}
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle className="flex items-center gap-2">
-              <Zap className="w-5 h-5 text-orange-600" />
-              Apache Kafka Topics
-              <Badge className="bg-green-100 text-green-800">Online</Badge>
+              <MessageSquare className="w-5 h-5 text-blue-600" />
+              Apache Kafka - Tópicos
             </CardTitle>
             <Button variant="outline" size="sm">
-              <Settings className="w-4 h-4 mr-2" />
-              Manage
+              <Activity className="w-4 h-4 mr-2" />
+              Monitorar
             </Button>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {kafkaTopics.map((topic, index) => (
-              <div key={index} className="p-4 border rounded-lg hover:bg-slate-50 transition-colors">
-                <div className="flex justify-between items-center mb-3">
+          <div className="space-y-4">
+            {kafkaTopics.map((topic) => (
+              <div key={topic.id} className="p-4 border rounded-lg hover:bg-slate-50 transition-colors">
+                <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse-slow"></div>
-                    <h4 className="font-medium">{topic.name}</h4>
-                    {topic.lag > 0 && (
-                      <Badge variant="outline" className="text-yellow-600 border-yellow-600">
-                        Lag: {topic.lag}
-                      </Badge>
-                    )}
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <div>
+                      <h4 className="font-medium">{topic.name}</h4>
+                      <p className="text-sm text-slate-600">
+                        {topic.partitions} partições • {topic.replicas} réplicas
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-sm text-slate-600">
-                    Rate: {topic.rate}
+                  <div className="text-right">
+                    <div className="text-sm font-medium">{topic.rate_per_minute}/min</div>
+                    <div className="text-xs text-slate-500">
+                      {topic.lag > 0 && (
+                        <span className="text-yellow-600">Lag: {topic.lag}</span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <span className="text-slate-600">Partições:</span>
-                    <span className="ml-2 font-medium">{topic.partitions}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-600">Réplicas:</span>
-                    <span className="ml-2 font-medium">{topic.replicas}</span>
-                  </div>
+                <div className="grid grid-cols-3 gap-4 text-sm">
                   <div>
                     <span className="text-slate-600">Mensagens:</span>
-                    <span className="ml-2 font-medium">{topic.messages.toLocaleString()}</span>
+                    <span className="ml-2 font-medium">{topic.messages_count.toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-600">Taxa:</span>
+                    <span className="ml-2 font-medium">{topic.rate_per_minute}/min</span>
                   </div>
                   <div>
                     <span className="text-slate-600">Lag:</span>
-                    <span className={`ml-2 font-medium ${getLagColor(topic.lag)}`}>
+                    <span className={`ml-2 font-medium ${topic.lag > 0 ? 'text-yellow-600' : 'text-green-600'}`}>
                       {topic.lag}
                     </span>
                   </div>
@@ -185,109 +175,123 @@ export function MessagingSection() {
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle className="flex items-center gap-2">
-              <Rabbit className="w-5 h-5 text-orange-600" />
-              RabbitMQ Queues
-              <Badge className="bg-green-100 text-green-800">Online</Badge>
+              <Zap className="w-5 h-5 text-green-600" />
+              RabbitMQ - Filas
             </CardTitle>
             <Button variant="outline" size="sm">
-              <Settings className="w-4 h-4 mr-2" />
-              Manage
+              <Users className="w-4 h-4 mr-2" />
+              Gerenciar
             </Button>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {rabbitQueues.map((queue, index) => (
-              <div key={index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className={`w-2 h-2 rounded-full ${queue.status === 'active' ? 'bg-green-500' : 'bg-yellow-500'} animate-pulse-slow`}></div>
-                  <div>
-                    <h4 className="font-medium">{queue.name}</h4>
-                    <p className="text-sm text-slate-600">Rate: {queue.rate}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-6">
-                  <div className="text-center">
-                    <div className="text-sm text-slate-600">Messages</div>
-                    <div className="font-medium">{queue.messages}</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-sm text-slate-600">Consumers</div>
-                    <div className="font-medium">{queue.consumers}</div>
-                  </div>
-                  <div className="flex gap-2">
-                    {getStatusBadge(queue.status)}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Consumer Groups */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="w-5 h-5" />
-            Consumer Groups Status
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {consumers.map((consumer, index) => (
-              <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className={`w-2 h-2 rounded-full ${consumer.status === 'healthy' ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
-                  <div>
-                    <h4 className="font-medium">{consumer.service}</h4>
-                    <p className="text-sm text-slate-600">{consumer.group}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-6">
-                  <div className="text-center">
-                    <div className="text-sm text-slate-600">Topic</div>
-                    <div className="font-medium text-sm">{consumer.topic}</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-sm text-slate-600">Lag</div>
-                    <div className={`font-medium ${getLagColor(consumer.lag)}`}>
-                      {consumer.lag}
+          <div className="space-y-4">
+            {rabbitQueues.map((queue) => (
+              <div key={queue.id} className="p-4 border rounded-lg hover:bg-slate-50 transition-colors">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    {queue.status === 'active' ? (
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                    ) : (
+                      <AlertTriangle className="w-5 h-5 text-yellow-600" />
+                    )}
+                    <div>
+                      <h4 className="font-medium">{queue.name}</h4>
+                      <p className="text-sm text-slate-600">
+                        {queue.consumers} consumers ativos
+                      </p>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    {getStatusBadge(consumer.status)}
-                    <Button variant="outline" size="sm">
-                      <Pause className="w-3 h-3" />
-                    </Button>
+                  <div className="flex items-center gap-3">
+                    {getQueueStatusBadge(queue.status)}
                   </div>
                 </div>
+                
+                <div className="grid grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <span className="text-slate-600">Mensagens:</span>
+                    <span className="ml-2 font-medium">{queue.messages}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-600">Consumers:</span>
+                    <span className="ml-2 font-medium">{queue.consumers}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-600">Taxa:</span>
+                    <span className="ml-2 font-medium">{queue.rate_per_minute}/min</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-600">Status:</span>
+                    <span className={`ml-2 font-medium ${queue.status === 'active' ? 'text-green-600' : 'text-yellow-600'}`}>
+                      {queue.status === 'active' ? 'Ativo' : 'Atenção'}
+                    </span>
+                  </div>
+                </div>
+
+                {queue.messages > 100 && (
+                  <div className="mt-3">
+                    <div className="flex justify-between text-sm mb-1">
+                      <span>Queue Load</span>
+                      <span>{Math.min((queue.messages / 1000) * 100, 100).toFixed(1)}%</span>
+                    </div>
+                    <Progress value={Math.min((queue.messages / 1000) * 100, 100)} className="h-2" />
+                  </div>
+                )}
               </div>
             ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* Message Flow Visualization */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="w-5 h-5" />
-            Fluxo de Mensagens (Última Hora)
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-32 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg flex items-center justify-center">
-            <div className="text-center text-slate-600">
-              <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-50" />
-              <p>Gráfico de fluxo de mensagens em tempo real</p>
-              <p className="text-sm">Integração com ferramentas de monitoramento</p>
+      {/* Messaging Performance */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5" />
+              Performance Kafka
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-48 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg flex items-center justify-center">
+              <div className="text-center text-slate-600">
+                <MessageSquare className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>Gráficos de throughput em tempo real</p>
+                <p className="text-sm">Integração com Kafka Manager</p>
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="w-5 h-5" />
+              Métricas RabbitMQ
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span>Total de Filas</span>
+                <span className="font-bold">{rabbitQueues.length}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span>Consumers Ativos</span>
+                <span className="font-bold">{rabbitQueues.reduce((acc, q) => acc + q.consumers, 0)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span>Mensagens Pendentes</span>
+                <span className="font-bold">{totalRabbitMessages.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span>Taxa Total</span>
+                <span className="font-bold">{rabbitQueues.reduce((acc, q) => acc + q.rate_per_minute, 0)}/min</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

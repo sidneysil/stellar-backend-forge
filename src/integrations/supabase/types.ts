@@ -9,7 +9,255 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      api_endpoints: {
+        Row: {
+          avg_response_time: number
+          created_at: string
+          id: string
+          method: string
+          path: string
+          requests_per_minute: number
+          service_name: string
+          status: string
+          uptime_percentage: number
+        }
+        Insert: {
+          avg_response_time?: number
+          created_at?: string
+          id?: string
+          method: string
+          path: string
+          requests_per_minute?: number
+          service_name: string
+          status?: string
+          uptime_percentage?: number
+        }
+        Update: {
+          avg_response_time?: number
+          created_at?: string
+          id?: string
+          method?: string
+          path?: string
+          requests_per_minute?: number
+          service_name?: string
+          status?: string
+          uptime_percentage?: number
+        }
+        Relationships: []
+      }
+      cicd_pipelines: {
+        Row: {
+          branch: string
+          commit_message: string
+          completed_at: string | null
+          duration_seconds: number
+          id: string
+          progress: number
+          service_name: string
+          stage: string
+          started_at: string
+          status: string
+        }
+        Insert: {
+          branch: string
+          commit_message: string
+          completed_at?: string | null
+          duration_seconds: number
+          id?: string
+          progress?: number
+          service_name: string
+          stage: string
+          started_at?: string
+          status: string
+        }
+        Update: {
+          branch?: string
+          commit_message?: string
+          completed_at?: string | null
+          duration_seconds?: number
+          id?: string
+          progress?: number
+          service_name?: string
+          stage?: string
+          started_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      kafka_topics: {
+        Row: {
+          created_at: string
+          id: string
+          lag: number
+          messages_count: number
+          name: string
+          partitions: number
+          rate_per_minute: number
+          replicas: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lag?: number
+          messages_count?: number
+          name: string
+          partitions: number
+          rate_per_minute?: number
+          replicas: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lag?: number
+          messages_count?: number
+          name?: string
+          partitions?: number
+          rate_per_minute?: number
+          replicas?: number
+        }
+        Relationships: []
+      }
+      microservices: {
+        Row: {
+          cpu_usage: number
+          created_at: string
+          description: string | null
+          error_rate: number
+          id: string
+          instances: number
+          last_deploy: string | null
+          memory_usage: number
+          name: string
+          port: number
+          requests_per_minute: number
+          status: string
+          updated_at: string
+          uptime_hours: number
+          version: string
+        }
+        Insert: {
+          cpu_usage?: number
+          created_at?: string
+          description?: string | null
+          error_rate?: number
+          id?: string
+          instances?: number
+          last_deploy?: string | null
+          memory_usage?: number
+          name: string
+          port: number
+          requests_per_minute?: number
+          status?: string
+          updated_at?: string
+          uptime_hours?: number
+          version: string
+        }
+        Update: {
+          cpu_usage?: number
+          created_at?: string
+          description?: string | null
+          error_rate?: number
+          id?: string
+          instances?: number
+          last_deploy?: string | null
+          memory_usage?: number
+          name?: string
+          port?: number
+          requests_per_minute?: number
+          status?: string
+          updated_at?: string
+          uptime_hours?: number
+          version?: string
+        }
+        Relationships: []
+      }
+      rabbitmq_queues: {
+        Row: {
+          consumers: number
+          created_at: string
+          id: string
+          messages: number
+          name: string
+          rate_per_minute: number
+          status: string
+        }
+        Insert: {
+          consumers?: number
+          created_at?: string
+          id?: string
+          messages?: number
+          name: string
+          rate_per_minute?: number
+          status?: string
+        }
+        Update: {
+          consumers?: number
+          created_at?: string
+          id?: string
+          messages?: number
+          name?: string
+          rate_per_minute?: number
+          status?: string
+        }
+        Relationships: []
+      }
+      system_logs: {
+        Row: {
+          id: string
+          level: string
+          message: string
+          metadata: Json | null
+          service_name: string
+          timestamp: string
+        }
+        Insert: {
+          id?: string
+          level: string
+          message: string
+          metadata?: Json | null
+          service_name: string
+          timestamp?: string
+        }
+        Update: {
+          id?: string
+          level?: string
+          message?: string
+          metadata?: Json | null
+          service_name?: string
+          timestamp?: string
+        }
+        Relationships: []
+      }
+      system_metrics: {
+        Row: {
+          active_connections: number
+          cpu_avg: number
+          id: string
+          memory_avg: number
+          requests_total: number
+          response_time_avg: number
+          timestamp: string
+        }
+        Insert: {
+          active_connections: number
+          cpu_avg: number
+          id?: string
+          memory_avg: number
+          requests_total: number
+          response_time_avg: number
+          timestamp?: string
+        }
+        Update: {
+          active_connections?: number
+          cpu_avg?: number
+          id?: string
+          memory_avg?: number
+          requests_total?: number
+          response_time_avg?: number
+          timestamp?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

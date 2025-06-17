@@ -14,50 +14,21 @@ import {
   Aws,
   TestTube
 } from "lucide-react";
+import { useCicdPipelines } from "@/hooks/useCicdPipelines";
 
 export function CICDSection() {
-  const pipelines = [
-    { 
-      name: "user-service", 
-      status: "success", 
-      branch: "main", 
-      commit: "fix: update user validation",
-      duration: "3m 45s",
-      stage: "deployed",
-      progress: 100,
-      lastRun: "2h ago"
-    },
-    { 
-      name: "order-service", 
-      status: "running", 
-      branch: "feature/order-tracking", 
-      commit: "feat: add order tracking endpoint",
-      duration: "2m 12s",
-      stage: "testing",
-      progress: 65,
-      lastRun: "running"
-    },
-    { 
-      name: "payment-service", 
-      status: "success", 
-      branch: "main", 
-      commit: "chore: update dependencies",
-      duration: "4m 23s",
-      stage: "deployed",
-      progress: 100,
-      lastRun: "1d ago"
-    },
-    { 
-      name: "notification-service", 
-      status: "failed", 
-      branch: "hotfix/email-template", 
-      commit: "fix: email template rendering",
-      duration: "1m 34s",
-      stage: "build",
-      progress: 30,
-      lastRun: "30m ago"
-    }
-  ];
+  const { pipelines, isLoading } = useCicdPipelines();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <GitBranch className="w-8 h-8 animate-spin mx-auto mb-2" />
+          <p>Carregando pipelines...</p>
+        </div>
+      </div>
+    );
+  }
 
   const stages = ["Build", "Test", "Security Scan", "Docker Build", "Deploy to Staging", "Deploy to Production"];
 
@@ -90,6 +61,32 @@ export function CICDSection() {
     );
   };
 
+  const formatDuration = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}m ${remainingSeconds}s`;
+  };
+
+  const getTimeAgo = (dateString: string) => {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+    
+    if (diffInMinutes < 60) return `${diffInMinutes}m atrás`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h atrás`;
+    return `${Math.floor(diffInMinutes / 1440)}d atrás`;
+  };
+
+  const successfulPipelines = pipelines.filter(p => p.status === 'success').length;
+  const runningPipelines = pipelines.filter(p => p.status === 'running').length;
+  const todayPipelines = pipelines.filter(p => {
+    const today = new Date();
+    const pipelineDate = new Date(p.started_at);
+    return pipelineDate.toDateString() === today.toDateString();
+  }).length;
+
+  const avgDuration = pipelines.reduce((acc, p) => acc + p.duration_seconds, 0) / pipelines.length || 0;
+
   return (
     <div className="space-y-6">
       {/* CI/CD Overview */}
@@ -99,8 +96,8 @@ export function CICDSection() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-600">Pipelines Hoje</p>
-                <p className="text-2xl font-bold text-slate-900">24</p>
-                <p className="text-sm text-green-600">+8 vs ontem</p>
+                <p className="text-2xl font-bold text-slate-900">{todayPipelines}</p>
+                <p className="text-sm text-green-600">+{todayPipelines - 16} vs ontem</p>
               </div>
               <GitBranch className="w-8 h-8 text-blue-600" />
             </div>
@@ -112,7 +109,9 @@ export function CICDSection() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-600">Taxa de Sucesso</p>
-                <p className="text-2xl font-bold text-green-600">96%</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {pipelines.length > 0 ? Math.round((successfulPipelines / pipelines.length) * 100) : 0}%
+                </p>
                 <p className="text-sm text-green-600">Excellent</p>
               </div>
               <CheckCircle className="w-8 h-8 text-green-600" />
@@ -125,7 +124,7 @@ export function CICDSection() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-600">Tempo Médio</p>
-                <p className="text-2xl font-bold text-slate-900">4m 12s</p>
+                <p className="text-2xl font-bold text-slate-900">{formatDuration(Math.round(avgDuration))}</p>
                 <p className="text-sm text-green-600">-23s</p>
               </div>
               <Clock className="w-8 h-8 text-purple-600" />
@@ -137,9 +136,9 @@ export function CICDSection() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600">Deploys/Dia</p>
-                <p className="text-2xl font-bold text-slate-900">12</p>
-                <p className="text-sm text-blue-600">Continuous</p>
+                <p className="text-sm font-medium text-slate-600">Executando</p>
+                <p className="text-2xl font-bold text-slate-900">{runningPipelines}</p>
+                <p className="text-sm text-blue-600">Active</p>
               </div>
               <Play className="w-8 h-8 text-blue-600" />
             </div>
@@ -163,18 +162,18 @@ export function CICDSection() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {pipelines.map((pipeline, index) => (
-              <div key={index} className="p-4 border rounded-lg hover:bg-slate-50 transition-colors">
+            {pipelines.map((pipeline) => (
+              <div key={pipeline.id} className="p-4 border rounded-lg hover:bg-slate-50 transition-colors">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
                     {getStatusIcon(pipeline.status)}
                     <div>
-                      <h4 className="font-medium">{pipeline.name}</h4>
-                      <p className="text-sm text-slate-600">{pipeline.branch} • {pipeline.commit}</p>
+                      <h4 className="font-medium">{pipeline.service_name}</h4>
+                      <p className="text-sm text-slate-600">{pipeline.branch} • {pipeline.commit_message}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-sm text-slate-600">{pipeline.duration}</span>
+                    <span className="text-sm text-slate-600">{formatDuration(pipeline.duration_seconds)}</span>
                     {getStatusBadge(pipeline.status)}
                   </div>
                 </div>
@@ -188,7 +187,7 @@ export function CICDSection() {
                 </div>
                 
                 <div className="text-xs text-slate-500">
-                  Última execução: {pipeline.lastRun}
+                  Iniciado: {getTimeAgo(pipeline.started_at)}
                 </div>
               </div>
             ))}
@@ -235,7 +234,7 @@ export function CICDSection() {
               </div>
               <div className="flex justify-between items-center">
                 <span>Jobs em Fila</span>
-                <span className="font-medium">3</span>
+                <span className="font-medium">{runningPipelines}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span>Build Cache</span>
@@ -256,7 +255,7 @@ export function CICDSection() {
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span>Total Images</span>
-                <span className="font-medium">156</span>
+                <span className="font-medium">{156 + pipelines.filter(p => p.status === 'success').length}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span>Storage Used</span>
@@ -281,7 +280,7 @@ export function CICDSection() {
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span>ECS Services</span>
-                <span className="font-medium">12</span>
+                <span className="font-medium">{pipelines.filter(p => p.stage === 'deployed').length}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span>Load Balancers</span>
